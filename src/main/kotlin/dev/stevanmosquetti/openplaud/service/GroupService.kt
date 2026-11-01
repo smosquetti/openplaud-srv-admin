@@ -96,7 +96,7 @@ class GroupService(
         }
         val room = slugify(group.name)
         val user = slugify(operator.name)
-        ejabberd.setRoomAffiliation(room, group.service, user, "member")
+        ejabberd.setRoomAffiliation(room, group.service, user, "admin")
         try {
             operatorGroupRepository.save(OperatorGroup(key))
         } catch (dbError: RuntimeException) {

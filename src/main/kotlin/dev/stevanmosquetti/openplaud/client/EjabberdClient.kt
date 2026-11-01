@@ -84,7 +84,9 @@ class EjabberdClient(
                 "room" to room,
                 "service" to service,
                 "host" to host,
-                "options" to listOf(mapOf("name" to "members_only", "value" to "true")),
+                "options" to listOf(
+                    mapOf("name" to "members_only", "value" to "true"),
+                    mapOf("name" to "allow_subscription", "value" to "true")),
             )
         )
     }
@@ -103,7 +105,8 @@ class EjabberdClient(
                 "host" to host,
                 "options" to listOf(
                     mapOf("name" to "persistent", "value" to "true"),
-                    mapOf("name" to "members_only", "value" to "true")),
+                    mapOf("name" to "members_only", "value" to "true"),
+                    mapOf("name" to "allow_subscription", "value" to "true")),
             )
         )
     }
