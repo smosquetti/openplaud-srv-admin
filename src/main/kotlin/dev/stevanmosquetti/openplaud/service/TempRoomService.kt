@@ -32,7 +32,7 @@ class TempRoomService(
      */
     fun create(user: UUID, name: String, groupId: UUID, service: String?): CreateTempRoomResponse {
         val room = "${user}_${groupId}"
-        ejabberd.createRoom(room, service?: mucService)
+        ejabberd.createRoom(room, name, service?: mucService)
         ejabberd.setRoomAffiliation(
             room,
             service?: mucService,

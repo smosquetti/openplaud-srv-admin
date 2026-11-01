@@ -76,7 +76,7 @@ class EjabberdClient(
      * Creates a non-persistent, members-only MUC room (mod_http_api
      * `create_room_with_opts`).
      */
-    fun createRoom(room: String, service: String) {
+    fun createRoom(room: String, title: String, service: String) {
         log.debug("Creating MUC room '{}' on service '{}'", room, service)
         postForStatus(
             "create_room_with_opts",
@@ -85,8 +85,10 @@ class EjabberdClient(
                 "service" to service,
                 "host" to host,
                 "options" to listOf(
+                    mapOf("name" to "title", "value" to title),
                     mapOf("name" to "members_only", "value" to "true"),
-                    mapOf("name" to "allow_subscription", "value" to "true")),
+                    mapOf("name" to "allow_subscription", "value" to "true"),
+                    mapOf("name" to "logging", "value" to "true")),
             )
         )
     }
@@ -95,7 +97,7 @@ class EjabberdClient(
      * Creates a persistent, members-only MUC room (mod_http_api
      * `create_room_with_opts`).
      */
-    fun createPersistentRoom(room: String, service: String) {
+    fun createPersistentRoom(room: String, title: String, service: String) {
         log.debug("Creating persistent MUC room '{}' on service '{}'", room, service)
         postForStatus(
             "create_room_with_opts",
@@ -104,9 +106,11 @@ class EjabberdClient(
                 "service" to service,
                 "host" to host,
                 "options" to listOf(
+                    mapOf("name" to "title", "value" to title),
                     mapOf("name" to "persistent", "value" to "true"),
                     mapOf("name" to "members_only", "value" to "true"),
-                    mapOf("name" to "allow_subscription", "value" to "true")),
+                    mapOf("name" to "allow_subscription", "value" to "true"),
+                    mapOf("name" to "logging", "value" to "true")),
             )
         )
     }

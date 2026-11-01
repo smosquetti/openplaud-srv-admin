@@ -61,7 +61,7 @@ class GroupService(
         ejabberd.checkAdminAccess()
         val room = slugify(name)
         requireRoomFree(room)
-        ejabberd.createPersistentRoom(room, service)
+        ejabberd.createPersistentRoom(room, name, service)
         val groupEntity = Group(name = name, node = room, service = service)
         val group = try {
             groupRepository.save(groupEntity)
