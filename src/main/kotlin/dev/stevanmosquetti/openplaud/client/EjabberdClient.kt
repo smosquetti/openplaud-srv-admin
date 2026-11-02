@@ -183,12 +183,27 @@ class EjabberdClient(
      * the raw ejabberd response.
      */
     fun checkOperatorAccess() {
+        checkPassword(extractCredentialsFromHeader())
+    }
+    
+    /**
+     * Verifies the caller is the configured admin account and its credentials pass
+     * `check_password`; throws a 401 EjabberdException otherwise.
+     */
+    fun checkAdminAccess() {
         val credentials = extractCredentialsFromHeader()
+        if (credentials["user"] != adminUsername) {
+            throw EjabberdException("Authentication failure", HttpStatusCode.valueOf(401), "Unauthorized")
+        }
+        checkPassword(credentials)
+    }
+
+    private fun checkPassword(credentials: Map<String, String>) {
         val response = postForString(
             "check_password",
             mapOf(
                 "user" to credentials["user"]?.split("@")[0],
-                "host" to host, 
+                "host" to host,
                 "password" to credentials["password"]
             )
         ).replace("\"", "")
@@ -199,25 +214,6 @@ class EjabberdClient(
                 "Unauthorized"
             )
         }
-    }
-    
-    /**
-     * Verifies the caller is the configured admin account and its credentials pass
-     * `check_password`; throws a 401 EjabberdException otherwise.
-     */
-    fun checkAdminAccess(): String {
-        val credentials = extractCredentialsFromHeader()
-        if (credentials["user"] != adminUsername) {
-            throw EjabberdException("Authentication failure", HttpStatusCode.valueOf(401), "Unauthorized")
-        }
-        return postForString(
-            "check_password",
-            mapOf(
-                "user" to credentials["user"], 
-                "host" to host, 
-                "password" to credentials["password"]
-            )
-        ).replace("\"", "")
     }
     
     /**
