@@ -182,16 +182,23 @@ class EjabberdClient(
      * Verifies the caller's operator credentials via `check_password` and returns
      * the raw ejabberd response.
      */
-    fun checkOperatorAccess(): String {
+    fun checkOperatorAccess() {
         val credentials = extractCredentialsFromHeader()
-        return postForString(
+        val response = postForString(
             "check_password",
             mapOf(
-                "user" to credentials["user"], 
+                "user" to credentials["user"]?.split("@")[0],
                 "host" to host, 
                 "password" to credentials["password"]
             )
         ).replace("\"", "")
+        if (Integer.valueOf(response) == 1) {
+            throw EjabberdException(
+                "Authentication failure",
+                HttpStatusCode.valueOf(401),
+                "Unauthorized"
+            )
+        }
     }
     
     /**
