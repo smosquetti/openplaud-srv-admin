@@ -40,14 +40,14 @@ class TempRoomServiceTest {
         Mockito.`when`(operatorRepository.findById(otherOperatorA.id)).thenReturn(Optional.of(otherOperatorA))
         Mockito.`when`(operatorRepository.findById(otherOperatorB.id)).thenReturn(Optional.of(otherOperatorB))
 
-        val response = service.create(userId,"John Doe", groupId, "support")
+        val response = service.create(userId,"John Doe", groupId, "conference")
 
         val inOrder = Mockito.inOrder(ejabberd)
-        inOrder.verify(ejabberd).createRoom(room, "support")
-        inOrder.verify(ejabberd).setRoomAffiliation(room, "support", userId.toString(), "member")
-        inOrder.verify(ejabberd).setRoomAffiliation(room, "support", otherOperatorA.username, "admin")
-        inOrder.verify(ejabberd).setRoomAffiliation(room, "support", otherOperatorB.username, "admin")
-        assertEquals(CreateTempRoomResponse(room, "support"), response)
+        inOrder.verify(ejabberd).createRoom(room, "John Doe", "conference")
+        inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", userId.toString(), "member")
+        inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", otherOperatorA.username, "admin")
+        inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", otherOperatorB.username, "admin")
+        assertEquals(CreateTempRoomResponse(room, "conference"), response)
     }
 
     @Test
@@ -57,7 +57,7 @@ class TempRoomServiceTest {
         val response = service.create(userId, "John Doe", groupId, null)
 
         val inOrder = Mockito.inOrder(ejabberd)
-        inOrder.verify(ejabberd).createRoom(room, "conference")
+        inOrder.verify(ejabberd).createRoom(room, "John Doe", "conference")
         inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", userId.toString(), "member")
         assertEquals(CreateTempRoomResponse(room, "conference"), response)
     }
@@ -69,11 +69,11 @@ class TempRoomServiceTest {
         Mockito.`when`(operatorRepository.getUsernameById(otherOperatorA.id)).thenReturn("other_a")
         Mockito.`when`(operatorRepository.getUsernameById(otherOperatorB.id)).thenReturn("other_b")
 
-        service.removeAllOtherOperators(operatorId, groupId, "johndoe", "support")
+        service.removeAllOtherOperators(operatorId, groupId, "johndoe", "conference")
 
         val inOrder = Mockito.inOrder(ejabberd)
-        inOrder.verify(ejabberd).setRoomAffiliation("johndoe", "support", "other_a", "outcast")
-        inOrder.verify(ejabberd).setRoomAffiliation("johndoe", "support", "other_b", "outcast")
+        inOrder.verify(ejabberd).setRoomAffiliation("johndoe", "conference", "other_a", "outcast")
+        inOrder.verify(ejabberd).setRoomAffiliation("johndoe", "conference", "other_b", "outcast")
         Mockito.verify(operatorRepository, Mockito.never()).getUsernameById(operatorId)
     }
 
@@ -89,8 +89,8 @@ class TempRoomServiceTest {
 
     @Test
     fun removeRoomDestroysRoomOnGivenService() {
-        service.removeRoom(room, "support")
-        Mockito.verify(ejabberd).destroyRoom(room, "support")
+        service.removeRoom(room, "conference")
+        Mockito.verify(ejabberd).destroyRoom(room, "conference")
     }
 
     @Test

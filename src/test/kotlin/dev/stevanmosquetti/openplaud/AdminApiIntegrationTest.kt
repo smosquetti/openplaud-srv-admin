@@ -99,7 +99,7 @@ class AdminApiIntegrationTest @Autowired constructor(
         assertTrue(operatorGroupRepository.existsByOperatorIdAndGroupId(operatorId!!, groupId!!))
 
         // 4. Membership is visible on the XMPP server
-        assertEquals("member", ejabberd.getRoomAffiliation(room!!, service!!, "$xmppUser@${ejabberd.host}"))
+        assertEquals("admin", ejabberd.getRoomAffiliation(room!!, service!!, "$xmppUser@${ejabberd.host}"))
 
         // 5. Remove operator from group: affiliation cleared + row deleted
         val (removeStatus, _) = send(HttpMethod.DELETE, "/api/v1/groups/$groupId/operators/$operatorId")

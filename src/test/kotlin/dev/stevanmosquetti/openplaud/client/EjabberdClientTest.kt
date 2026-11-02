@@ -88,28 +88,40 @@ class EjabberdClientTest {
 
     @Test
     fun createRoomPostsPersistentOption() {
-        client.createPersistentRoom("support", "supportservice")
+        client.createPersistentRoom("support", "Support Service", "conference")
 
         val request = lastRequest()
         assertEquals("/api/create_room_with_opts", request.path)
         val json = objectMapper.readTree(request.body)
         assertEquals("support", json.get("room")?.asText())
-        assertEquals("supportservice", json.get("service")?.asText())
+        assertEquals("conference", json.get("service")?.asText())
         assertEquals("localhost", json.get("host")?.asText())
-        val option = json.get("options")?.get(0)
-        assertEquals("persistent", option?.get("name")?.asText())
-        assertEquals("true", option?.get("value")?.asText())
+        val option1 = json.get("options")?.get(0)
+        assertEquals("persistent", option1?.get("name")?.asText())
+        assertEquals("true", option1?.get("value")?.asText())
+        val option2 = json.get("options")?.get(1)
+        assertEquals("title", option2?.get("name")?.asText())
+        assertEquals("Support Service", option2?.get("value")?.asText())
+        val option3 = json.get("options")?.get(2)
+        assertEquals("members_only", option3?.get("name")?.asText())
+        assertEquals("true", option3?.get("value")?.asText())
+        val option4 = json.get("options")?.get(3)
+        assertEquals("allow_subscription", option4?.get("name")?.asText())
+        assertEquals("true", option4?.get("value")?.asText())
+        val option5 = json.get("options")?.get(4)
+        assertEquals("logging", option5?.get("name")?.asText())
+        assertEquals("true", option5?.get("value")?.asText())
     }
 
     @Test
     fun setRoomAffiliationPostsRoomUserAndAffiliation() {
-        client.setRoomAffiliation("support", "supportservice", "johndoe")
+        client.setRoomAffiliation("support", "conference", "johndoe")
 
         val request = lastRequest()
         assertEquals("/api/set_room_affiliation", request.path)
         val json = objectMapper.readTree(request.body)
         assertEquals("support", json.get("room")?.asText())
-        assertEquals("supportservice", json.get("service")?.asText())
+        assertEquals("conference", json.get("service")?.asText())
         assertEquals("johndoe", json.get("user")?.asText())
         assertEquals("localhost", json.get("host")?.asText())
         assertEquals("member", json.get("affiliation")?.asText())
@@ -146,43 +158,52 @@ class EjabberdClientTest {
 
     @Test
     fun createRoomPostsMembersOnlyOption() {
-        client.createRoom("johndoe", "support")
+        client.createRoom("johndoe", "Support", "conference")
 
         val request = lastRequest()
         assertEquals("/api/create_room_with_opts", request.path)
         val json = objectMapper.readTree(request.body)
         assertEquals("johndoe", json.get("room")?.asText())
-        assertEquals("support", json.get("service")?.asText())
+        assertEquals("conference", json.get("service")?.asText())
         assertEquals("localhost", json.get("host")?.asText())
-        val option = json.get("options")?.get(0)
-        assertEquals("members_only", option?.get("name")?.asText())
-        assertEquals("true", option?.get("value")?.asText())
-        assertEquals(1, json.get("options").size())
+        val option1 = json.get("options")?.get(0)
+        assertEquals("members_only", option1?.get("name")?.asText())
+        assertEquals("true", option1?.get("value")?.asText())
+        val option2 = json.get("options")?.get(1)
+        assertEquals("title", option2?.get("name")?.asText())
+        assertEquals("Support", option2?.get("value")?.asText())
+        val option3 = json.get("options")?.get(2)
+        assertEquals("allow_subscription", option3?.get("name")?.asText())
+        assertEquals("true", option3?.get("value")?.asText())
+        val option4 = json.get("options")?.get(3)
+        assertEquals("logging", option4?.get("name")?.asText())
+        assertEquals("true", option4?.get("value")?.asText())
+        assertEquals(4, json.get("options").size())
     }
 
     @Test
     fun destroyPostsRoomAndService() {
-        client.destroyRoom("support", "supportservice")
+        client.destroyRoom("support", "conference")
 
         val request = lastRequest()
         assertEquals("/api/destroy_room", request.path)
         val json = objectMapper.readTree(request.body)
         assertEquals("support", json.get("room")?.asText())
-        assertEquals("supportservice", json.get("service")?.asText())
+        assertEquals("conference", json.get("service")?.asText())
     }
 
     @Test
     fun getRoomAffiliationPostsJidAndStripsQuotes() {
         nextBody.set("\"member\"")
 
-        val result = client.getRoomAffiliation("support", "supportservice", "johndoe@localhost")
+        val result = client.getRoomAffiliation("support", "conference", "johndoe@localhost")
 
         assertEquals("member", result)
         val request = lastRequest()
         assertEquals("/api/get_room_affiliation", request.path)
         val json = objectMapper.readTree(request.body)
         assertEquals("support", json.get("room")?.asText())
-        assertEquals("supportservice", json.get("service")?.asText())
+        assertEquals("conference", json.get("service")?.asText())
         assertEquals("johndoe@localhost", json.get("jid")?.asText())
     }
 

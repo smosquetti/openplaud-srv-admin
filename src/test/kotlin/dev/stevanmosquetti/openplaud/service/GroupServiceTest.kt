@@ -29,7 +29,7 @@ class GroupServiceTest {
     private val operatorId = UUID.randomUUID()
     private val groupId = UUID.randomUUID()
     private val operator = Operator(name = "John Doe", id = operatorId, username = "johndoe", email = "johndoe@email.com")
-    private val group = Group(name = "Support Team", node = "supportteam", service = "supportservice", id = groupId)
+    private val group = Group(name = "Support Team", node = "supportteam", service = "conference", id = groupId)
 
     @BeforeEach
     fun setUp() {
@@ -41,29 +41,29 @@ class GroupServiceTest {
         Mockito.`when`(groupRepository.findAll()).thenReturn(emptyList())
         Mockito.`when`(groupRepository.save(Mockito.any(Group::class.java))).thenReturn(group)
 
-        val response = service.create("Support Team", "supportservice")
+        val response = service.create("Support Team", "conference")
 
         val inOrder = Mockito.inOrder(ejabberd, groupRepository)
-        inOrder.verify(ejabberd).createPersistentRoom("supportteam", "supportservice")
+        inOrder.verify(ejabberd).createPersistentRoom("supportteam", "Support Team", "conference")
         inOrder.verify(groupRepository).save(Mockito.any(Group::class.java))
         assertEquals(group.id, response.id)
         assertEquals("Support Team", response.name)
         assertEquals("supportteam", response.room)
-        assertEquals("supportservice", response.service)
+        assertEquals("conference", response.service)
     }
 
     @Test
     fun rejectsGroupWithTakenRoom() {
         Mockito.`when`(groupRepository.findAll()).thenReturn(listOf(
-            Group(name = "Support Team", node = "supportteam", service = "supportservice")))
+            Group(name = "Support Team", node = "supportteam", service = "conference")))
 
-        assertFailsWith<ConflictException> { service.create("support team", "supportservice") }
+        assertFailsWith<ConflictException> { service.create("Support Team", "conference") }
     }
 
     @Test
     fun rejectsGroupNameWithoutValidRoom() {
-        assertFailsWith<InvalidSlugException> { service.create("a", "supportservice") }
-        assertFailsWith<InvalidSlugException> { service.create("!!?", "supportservice") }
+        assertFailsWith<InvalidSlugException> { service.create("a", "conference") }
+        assertFailsWith<InvalidSlugException> { service.create("!!?", "conference") }
     }
 
     @Test
@@ -72,12 +72,12 @@ class GroupServiceTest {
         val dbError = RuntimeException("database down")
         Mockito.`when`(groupRepository.save(Mockito.any(Group::class.java))).thenThrow(dbError)
 
-        val error = assertFailsWith<RuntimeException> { service.create("Support Team", "supportservice") }
+        val error = assertFailsWith<RuntimeException> { service.create("Support Team", "conference") }
 
         assertSame(dbError, error)
         val inOrder = Mockito.inOrder(ejabberd)
-        inOrder.verify(ejabberd).createPersistentRoom("supportteam", "supportservice")
-        inOrder.verify(ejabberd).destroyRoom("supportteam", "supportservice")
+        inOrder.verify(ejabberd).createPersistentRoom("supportteam", "Support Team", "conference")
+        inOrder.verify(ejabberd).destroyRoom("supportteam", "conference")
     }
 
     @Test
@@ -89,7 +89,7 @@ class GroupServiceTest {
         service.addOperatorToGroup(groupId, operatorId)
 
         val inOrder = Mockito.inOrder(ejabberd, operatorGroupRepository)
-        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "supportservice", "johndoe", "member")
+        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "admin")
         inOrder.verify(operatorGroupRepository).save(Mockito.any(OperatorGroup::class.java))
 
         val captor = ArgumentCaptor.forClass(OperatorGroup::class.java)
@@ -134,8 +134,8 @@ class GroupServiceTest {
 
         assertSame(dbError, error)
         val inOrder = Mockito.inOrder(ejabberd)
-        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "supportservice", "johndoe", "member")
-        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "supportservice", "johndoe", "none")
+        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "admin")
+        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "none")
     }
 
     @Test
@@ -149,7 +149,7 @@ class GroupServiceTest {
         service.removeOperatorFromGroup(groupId, operatorId)
 
         val inOrder = Mockito.inOrder(ejabberd, operatorGroupRepository)
-        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "supportservice", "johndoe", "none")
+        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "none")
         inOrder.verify(operatorGroupRepository).deleteById(key)
     }
 
@@ -170,7 +170,7 @@ class GroupServiceTest {
         val inOrder = Mockito.inOrder(operatorGroupRepository, groupRepository, ejabberd)
         inOrder.verify(operatorGroupRepository).deleteByGroup(groupId)
         inOrder.verify(groupRepository).deleteById(groupId)
-        inOrder.verify(ejabberd).destroyRoom("supportteam", "supportservice")
+        inOrder.verify(ejabberd).destroyRoom("supportteam", "conference")
     }
 
     @Test
@@ -187,9 +187,9 @@ class GroupServiceTest {
         Mockito.`when`(groupRepository.findAll()).thenReturn(emptyList())
         val dbError = RuntimeException("database down")
         Mockito.`when`(groupRepository.save(Mockito.any(Group::class.java))).thenThrow(dbError)
-        Mockito.`doThrow`(RuntimeException("xmpp down")).`when`(ejabberd).destroyRoom("supportteam", "supportservice")
+        Mockito.`doThrow`(RuntimeException("xmpp down")).`when`(ejabberd).destroyRoom("supportteam", "conference")
 
-        val error = assertFailsWith<RuntimeException> { service.create("Support Team", "supportservice") }
+        val error = assertFailsWith<RuntimeException> { service.create("Support Team", "conference") }
 
         assertSame(dbError, error)
     }

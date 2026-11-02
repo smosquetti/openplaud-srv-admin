@@ -85,8 +85,8 @@ class EjabberdClient(
                 "service" to service,
                 "host" to host,
                 "options" to listOf(
-                    mapOf("name" to "title", "value" to title),
                     mapOf("name" to "members_only", "value" to "true"),
+                    mapOf("name" to "title", "value" to title),
                     mapOf("name" to "allow_subscription", "value" to "true"),
                     mapOf("name" to "logging", "value" to "true")),
             )
@@ -106,8 +106,8 @@ class EjabberdClient(
                 "service" to service,
                 "host" to host,
                 "options" to listOf(
-                    mapOf("name" to "title", "value" to title),
                     mapOf("name" to "persistent", "value" to "true"),
+                    mapOf("name" to "title", "value" to title),
                     mapOf("name" to "members_only", "value" to "true"),
                     mapOf("name" to "allow_subscription", "value" to "true"),
                     mapOf("name" to "logging", "value" to "true")),
