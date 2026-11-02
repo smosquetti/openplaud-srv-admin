@@ -1,4 +1,4 @@
-# open-plaud-admin
+# openplaud-srv-admin
 
 REST API for the admin panel of a chat/call application. It keeps a PostgreSQL
 database as the source of truth for **Operators** (XMPP users), **Groups**
@@ -6,10 +6,12 @@ database as the source of truth for **Operators** (XMPP users), **Groups**
 **ejabberd** XMPP server through its `mod_http_api`.
 
 - **Operator** — a registered client/user on the XMPP server.
-- **Group** — a persistent, members-only MUC room on the XMPP server.
-- **Membership** — an operator added to a group becomes an affiliated MUC
-  member.
-- **Temp room** — a per-conversation MUC room; operators of the given group
+- **Group** — a persistent, members-only MUC room on the XMPP server,
+  titled with the group's display name, with message logging enabled.
+- **Membership** — an operator added to a group is made an affiliated MUC
+  admin of the group's room.
+- **Temp room** — a per-conversation MUC room titled with the user's
+  display name, with message logging enabled; operators of the given group
   are made admins and subscribed to the room's messages so they can
   transfer the call, only the joining operator keeps access
   (everyone else is `outcast`), and a transfer hands the call over to
@@ -126,7 +128,7 @@ localpart are rejected.
 | `POST` | `/groups` | Create a group: persistent MUC room + `groups` row |
 | `GET` | `/groups` | List all groups; served from the Redis cache (5 min TTL, evicted on create/delete) |
 | `GET` | `/groups/{groupId}/operators` | List the operators of the group |
-| `POST` | `/groups/{groupId}/operators/{operatorId}` | Add operator to group (MUC affiliation `member`) |
+| `POST` | `/groups/{groupId}/operators/{operatorId}` | Add operator to group (MUC affiliation `admin`) |
 | `DELETE` | `/groups/{groupId}/operators/{operatorId}` | Remove operator from group (affiliation `none`) |
 | `DELETE` | `/groups/{groupId}` | Remove group (destroys the MUC room, deletes membership rows) |
 
