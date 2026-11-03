@@ -3,7 +3,6 @@ package dev.stevanmosquetti.openplaud.service
 import dev.stevanmosquetti.openplaud.client.EjabberdClient
 import dev.stevanmosquetti.openplaud.dto.GroupResponse
 import dev.stevanmosquetti.openplaud.dto.OperatorResponse
-import dev.stevanmosquetti.openplaud.entity.Group
 import dev.stevanmosquetti.openplaud.entity.Operator
 import dev.stevanmosquetti.openplaud.repository.OperatorGroupRepository
 import dev.stevanmosquetti.openplaud.repository.OperatorRepository
