@@ -1,6 +1,9 @@
 package dev.stevanmosquetti.openplaud.service
 
 import dev.stevanmosquetti.openplaud.client.EjabberdClient
+import dev.stevanmosquetti.openplaud.dto.GroupResponse
+import dev.stevanmosquetti.openplaud.dto.OperatorResponse
+import dev.stevanmosquetti.openplaud.entity.Group
 import dev.stevanmosquetti.openplaud.entity.Operator
 import dev.stevanmosquetti.openplaud.repository.OperatorGroupRepository
 import dev.stevanmosquetti.openplaud.repository.OperatorRepository
@@ -10,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.springframework.web.server.ResponseStatusException
 import java.util.Optional
 import java.util.UUID
 
@@ -19,6 +23,9 @@ class OperatorServiceTest {
     private val operatorGroupRepository = Mockito.mock(OperatorGroupRepository::class.java)
     private val ejabberd = Mockito.mock(EjabberdClient::class.java)
     private lateinit var service: OperatorService
+    private val operatorId = UUID.randomUUID()
+    private val groupId = UUID.randomUUID()
+    private val group = Group(name = "Support Team", node = "supportteam", service = "conference", id = groupId)
 
     @BeforeEach
     fun setUp() {
@@ -131,5 +138,53 @@ class OperatorServiceTest {
         val error = assertFailsWith<RuntimeException> { service.register("John Doe", "johndoe@email.com", "pw") }
 
         assertSame(dbError, error)
+    }
+
+    @Test
+    fun checkAccessForwardsToEjabberdWhenOperatorExists() {
+        Mockito.`when`(ejabberd.extractCredentialsFromHeader()).thenReturn(mapOf("user" to "johndoe", "password" to "pw"))
+        Mockito.`when`(operatorRepository.existsByOperatorUsername("johndoe")).thenReturn(true)
+
+        service.checkAccess()
+
+        Mockito.verify(ejabberd).checkOperatorAccess()
+    }
+
+    @Test
+    fun checkAccessRejectsUnknownOperator() {
+        Mockito.`when`(ejabberd.extractCredentialsFromHeader()).thenReturn(mapOf("user" to "unknown", "password" to "pw"))
+        Mockito.`when`(operatorRepository.existsByOperatorUsername("unknown")).thenReturn(false)
+
+        assertFailsWith<ResponseStatusException> { service.checkAccess() }
+
+        Mockito.verify(ejabberd, Mockito.never()).checkOperatorAccess()
+    }
+
+    @Test
+    fun checkAccessRejectsMissingCredentials() {
+        Mockito.`when`(ejabberd.extractCredentialsFromHeader()).thenReturn(mapOf("password" to "pw"))
+
+        assertFailsWith<ResponseStatusException> { service.checkAccess() }
+    }
+
+    @Test
+    fun getListOfOperatorsMapsEntities() {
+        val saved = Operator(name = "John Doe", email = "johndoe@email.com", username = "johndoe")
+        Mockito.`when`(operatorRepository.findAll()).thenReturn(listOf(saved))
+
+        val response = service.getListOfOperators()
+
+        Mockito.verify(ejabberd).checkOperatorAccess()
+        assertEquals(listOf(OperatorResponse(saved.id, "John Doe", "johndoe@email.com", "johndoe")), response)
+    }
+
+    @Test
+    fun getListOfGroupsForTheOperatorMapsEntities() {
+        Mockito.`when`(operatorGroupRepository.listGroupsByOperatorId(operatorId)).thenReturn(listOf(group))
+
+        val response = service.getListOfGroupsForTheOperator(operatorId)
+
+        Mockito.verify(ejabberd).checkOperatorAccess()
+        assertEquals(listOf(GroupResponse(group.id, "Support Team", "supportteam", "conference")), response)
     }
 }

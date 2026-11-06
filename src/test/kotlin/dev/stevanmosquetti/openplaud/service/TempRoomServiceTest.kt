@@ -48,6 +48,8 @@ class TempRoomServiceTest {
         inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", otherOperatorA.username, "admin")
         inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", otherOperatorB.username, "admin")
         assertEquals(CreateTempRoomResponse(room, "conference"), response)
+        assertEquals(room, response.room)
+        assertEquals("conference", response.service)
     }
 
     @Test
@@ -97,5 +99,48 @@ class TempRoomServiceTest {
     fun removeRoomFallsBackToDefaultMucServiceWhenServiceIsNull() {
         service.removeRoom(room, null)
         Mockito.verify(ejabberd).destroyRoom(room, "conference")
+    }
+
+    @Test
+    fun transferGrantsAdminAffiliationAndSubscriptionThenOutcastsPrevious() {
+        val previousOperatorId = UUID.randomUUID()
+        Mockito.`when`(operatorRepository.findById(operatorId)).thenReturn(Optional.of(operator))
+        Mockito.`when`(operatorRepository.getUsernameById(previousOperatorId)).thenReturn("other_a")
+
+        service.transferToAnotherOperator(room, operatorId, previousOperatorId, "conference")
+
+        val inOrder = Mockito.inOrder(ejabberd)
+        inOrder.verify(ejabberd).checkOperatorAccess()
+        inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", "operator", "admin")
+        inOrder.verify(ejabberd).setRoomSubscription(room, "conference", "operator", "Operator")
+        inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", "other_a", "outcast")
+    }
+
+    @Test
+    fun transferFallsBackToDefaultMucServiceWhenServiceIsNull() {
+        val previousOperatorId = UUID.randomUUID()
+        Mockito.`when`(operatorRepository.findById(operatorId)).thenReturn(Optional.of(operator))
+        Mockito.`when`(operatorRepository.getUsernameById(previousOperatorId)).thenReturn("other_a")
+
+        service.transferToAnotherOperator(room, operatorId, previousOperatorId, null)
+
+        Mockito.verify(ejabberd).setRoomAffiliation(room, "conference", "operator", "admin")
+        Mockito.verify(ejabberd).setRoomSubscription(room, "conference", "operator", "Operator")
+        Mockito.verify(ejabberd).setRoomAffiliation(room, "conference", "other_a", "outcast")
+    }
+
+    @Test
+    fun createFallsBackToDefaultMucServiceForGroupOperatorsWhenServiceIsNull() {
+        Mockito.`when`(operatorGroupRepository.listOperatorsByGroupId(groupId))
+            .thenReturn(listOf(otherOperatorA))
+        Mockito.`when`(operatorRepository.findById(otherOperatorA.id)).thenReturn(Optional.of(otherOperatorA))
+
+        val response = service.create(userId, "John Doe", groupId, null)
+
+        val inOrder = Mockito.inOrder(ejabberd)
+        inOrder.verify(ejabberd).createRoom(room, "John Doe", "conference")
+        inOrder.verify(ejabberd).setRoomAffiliation(room, "conference", otherOperatorA.username, "admin")
+        inOrder.verify(ejabberd).setRoomSubscription(room, "conference", otherOperatorA.username, otherOperatorA.name)
+        assertEquals(CreateTempRoomResponse(room, "conference"), response)
     }
 }

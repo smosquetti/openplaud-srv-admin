@@ -89,4 +89,41 @@ class GlobalExceptionHandlerTest {
         assertEquals("An unexpected error occurred", response.body!!.message)
         assertNull(response.body!!.fields["nonexistent"])
     }
+
+    @Test
+    fun fallsBackToDefaultMessagesWhenExceptionMessageIsNull() {
+        val notFound = Mockito.mock(NotFoundException::class.java)
+        Mockito.doReturn(null).`when`(notFound).message
+        val conflict = Mockito.mock(ConflictException::class.java)
+        Mockito.doReturn(null).`when`(conflict).message
+        val invalidSlug = Mockito.mock(InvalidSlugException::class.java)
+        Mockito.doReturn(null).`when`(invalidSlug).message
+
+        assertEquals("Resource not found", handler.handleNotFound(notFound).body!!.message)
+        assertEquals("Conflict", handler.handleConflict(conflict).body!!.message)
+        assertEquals("Invalid display name", handler.handleInvalidSlug(invalidSlug).body!!.message)
+
+        val ejabberdError = Mockito.mock(EjabberdException::class.java)
+        Mockito.doReturn(null).`when`(ejabberdError).message
+        Mockito.`when`(ejabberdError.statusCode).thenReturn(HttpStatus.BAD_GATEWAY)
+        val request = MockHttpServletRequest()
+        request.method = "POST"
+        request.requestURI = "/api/v1/customers"
+        assertEquals("ejabberd error", handler.handleEjabberd(ejabberdError, request).body!!.message)
+    }
+
+    @Test
+    fun fallsBackToInvalidValueWhenFieldErrorHasNoMessage() {
+        val fieldError = Mockito.mock(FieldError::class.java)
+        Mockito.`when`(fieldError.field).thenReturn("name")
+        Mockito.`when`(fieldError.defaultMessage).thenReturn(null)
+        val bindingResult = Mockito.mock(BindingResult::class.java)
+        Mockito.`when`(bindingResult.fieldErrors).thenReturn(listOf(fieldError))
+        val method = GlobalExceptionHandlerTest::class.java.getDeclaredMethod("dummy", String::class.java)
+        val exception = MethodArgumentNotValidException(MethodParameter(method, 0), bindingResult)
+
+        val response = handler.handleValidation(exception)
+
+        assertEquals("Invalid value", response.body!!.fields["name"])
+    }
 }

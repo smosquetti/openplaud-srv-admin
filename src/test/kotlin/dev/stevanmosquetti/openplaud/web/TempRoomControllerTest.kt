@@ -3,6 +3,7 @@ package dev.stevanmosquetti.openplaud.web
 import dev.stevanmosquetti.openplaud.dto.CreateTempRoomRequest
 import dev.stevanmosquetti.openplaud.dto.CreateTempRoomResponse
 import dev.stevanmosquetti.openplaud.dto.JoinChatroomRequest
+import dev.stevanmosquetti.openplaud.dto.TransferRequest
 import dev.stevanmosquetti.openplaud.service.TempRoomService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -66,5 +67,24 @@ class TempRoomControllerTest {
         controller.joinChatroom(JoinChatroomRequest(operatorId, groupId, "johndoe"))
 
         Mockito.verify(tempRoomService).removeAllOtherOperators(operatorId, groupId, "johndoe", null)
+    }
+
+    @Test
+    fun transferReturnsOkAndForwardsRequestFields() {
+        val previousOperatorId = UUID.randomUUID()
+
+        val response = controller.transferToAnotherOperator(TransferRequest("johndoe", operatorId, previousOperatorId, "conference"))
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        Mockito.verify(tempRoomService).transferToAnotherOperator("johndoe", operatorId, previousOperatorId, "conference")
+    }
+
+    @Test
+    fun transferForwardsNullServiceToTempRoomService() {
+        val previousOperatorId = UUID.randomUUID()
+
+        controller.transferToAnotherOperator(TransferRequest("johndoe", operatorId, previousOperatorId))
+
+        Mockito.verify(tempRoomService).transferToAnotherOperator("johndoe", operatorId, previousOperatorId, null)
     }
 }

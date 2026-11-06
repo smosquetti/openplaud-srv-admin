@@ -1,6 +1,8 @@
 package dev.stevanmosquetti.openplaud.service
 
 import dev.stevanmosquetti.openplaud.client.EjabberdClient
+import dev.stevanmosquetti.openplaud.dto.GroupResponse
+import dev.stevanmosquetti.openplaud.dto.OperatorResponse
 import dev.stevanmosquetti.openplaud.entity.Group
 import dev.stevanmosquetti.openplaud.entity.Operator
 import dev.stevanmosquetti.openplaud.entity.OperatorGroup
@@ -96,6 +98,8 @@ class GroupServiceTest {
         Mockito.verify(operatorGroupRepository).save(captor.capture())
         assertEquals(operatorId, captor.value.id.operatorId)
         assertEquals(groupId, captor.value.id.groupId)
+        assertEquals(operatorId, captor.value.operatorId)
+        assertEquals(groupId, captor.value.groupId)
     }
 
     @Test
@@ -192,5 +196,52 @@ class GroupServiceTest {
         val error = assertFailsWith<RuntimeException> { service.create("Support Team", "conference") }
 
         assertSame(dbError, error)
+    }
+
+    @Test
+    fun getListOfGroupsMapsEntities() {
+        Mockito.`when`(groupRepository.findAll()).thenReturn(listOf(group))
+
+        val response = service.getListOfGroups()
+
+        assertEquals(listOf(GroupResponse(group.id, "Support Team", "supportteam", "conference")), response)
+    }
+
+    @Test
+    fun getListOfOperatorsForTheGroupMapsEntities() {
+        Mockito.`when`(operatorGroupRepository.listOperatorsByGroupId(groupId)).thenReturn(listOf(operator))
+
+        val response = service.getListOfOperatorsForTheGroup(groupId)
+
+        Mockito.verify(ejabberd).checkOperatorAccess()
+        assertEquals(listOf(OperatorResponse(operator.id, "John Doe", "johndoe@email.com", "johndoe")), response)
+    }
+
+    @Test
+    fun removeOperatorRejectsMissingOperator() {
+        val key = OperatorGroupId(operatorId, groupId)
+        val membership = OperatorGroup(key)
+        Mockito.`when`(operatorGroupRepository.findById(key)).thenReturn(Optional.of(membership))
+        Mockito.`when`(groupRepository.findById(groupId)).thenReturn(Optional.of(group))
+        Mockito.`when`(operatorRepository.findById(operatorId)).thenReturn(Optional.empty())
+
+        assertFailsWith<NotFoundException> { service.removeOperatorFromGroup(groupId, operatorId) }
+    }
+
+    @Test
+    fun addOperatorPropagatesDatabaseErrorWhenAffiliationReversionFails() {
+        Mockito.`when`(operatorRepository.findById(operatorId)).thenReturn(Optional.of(operator))
+        Mockito.`when`(groupRepository.findById(groupId)).thenReturn(Optional.of(group))
+        Mockito.`when`(operatorGroupRepository.existsByOperatorIdAndGroupId(operatorId, groupId)).thenReturn(false)
+        val dbError = RuntimeException("database down")
+        Mockito.`when`(operatorGroupRepository.save(Mockito.any(OperatorGroup::class.java))).thenThrow(dbError)
+        Mockito.`doThrow`(RuntimeException("xmpp down")).`when`(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "none")
+
+        val error = assertFailsWith<RuntimeException> { service.addOperatorToGroup(groupId, operatorId) }
+
+        assertSame(dbError, error)
+        val inOrder = Mockito.inOrder(ejabberd)
+        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "admin")
+        inOrder.verify(ejabberd).setRoomAffiliation("supportteam", "conference", "johndoe", "none")
     }
 }

@@ -1,6 +1,7 @@
 package dev.stevanmosquetti.openplaud.web
 
 import dev.stevanmosquetti.openplaud.dto.CreateOperatorRequest
+import dev.stevanmosquetti.openplaud.dto.GroupResponse
 import dev.stevanmosquetti.openplaud.dto.OperatorResponse
 import dev.stevanmosquetti.openplaud.service.OperatorService
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -56,5 +57,46 @@ class OperatorControllerTest {
 
         assertEquals(HttpStatus.NO_CONTENT, result.statusCode)
         Mockito.verify(operatorService).removeOperator(operatorId)
+    }
+
+    @Test
+    fun checkPasswordReturnsOk() {
+        val result = controller.checkPassword()
+
+        assertEquals(HttpStatus.OK, result.statusCode)
+        Mockito.verify(operatorService).checkAccess()
+    }
+
+    @Test
+    fun getListOfOperatorsReturnsOk() {
+        val response = OperatorResponse(
+            id = UUID.randomUUID(),
+            name = "John Doe",
+            email = "johndoe@email.com",
+            xmppUser = "johndoe",
+        )
+        Mockito.`when`(operatorService.getListOfOperators()).thenReturn(listOf(response))
+
+        val result = controller.getListOfOperators()
+
+        assertEquals(HttpStatus.OK, result.statusCode)
+        assertEquals(listOf(response), result.body)
+    }
+
+    @Test
+    fun getListOfGroupsForTheOperatorReturnsOk() {
+        val operatorId = UUID.randomUUID()
+        val response = GroupResponse(
+            id = UUID.randomUUID(),
+            name = "Support Team",
+            room = "supportteam",
+            service = "conference",
+        )
+        Mockito.`when`(operatorService.getListOfGroupsForTheOperator(operatorId)).thenReturn(listOf(response))
+
+        val result = controller.getListOfGroupsForTheOperator(operatorId)
+
+        assertEquals(HttpStatus.OK, result.statusCode)
+        assertEquals(listOf(response), result.body)
     }
 }

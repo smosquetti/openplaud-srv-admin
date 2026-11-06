@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpServer
 import kotlin.test.assertFailsWith
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.mock.web.MockHttpServletRequest
@@ -207,4 +208,114 @@ class EjabberdClientTest {
         assertEquals("johndoe@localhost", json.get("jid")?.asText())
     }
 
+    @Test
+    fun setRoomSubscriptionPostsUserHostNickAndNodes() {
+        client.setRoomSubscription("support", "conference", "johndoe", "John Doe")
+
+        val request = lastRequest()
+        assertEquals("/api/subscribe_room", request.path)
+        val json = objectMapper.readTree(request.body)
+        assertEquals("johndoe", json.get("user")?.asText())
+        assertEquals("localhost", json.get("host")?.asText())
+        assertEquals("John Doe", json.get("nick")?.asText())
+        assertEquals("support", json.get("room")?.asText())
+        assertEquals("conference", json.get("service")?.asText())
+        assertEquals("urn:xmpp:mucsub:nodes:messages", json.get("nodes")?.get(0)?.asText())
+    }
+
+    @Test
+    fun checkOperatorAccessPostsCheckPasswordForDecodedUser() {
+        nextBody.set("0")
+
+        client.checkOperatorAccess()
+
+        val request = lastRequest()
+        assertEquals("/api/check_password", request.path)
+        val json = objectMapper.readTree(request.body)
+        assertEquals("admin", json.get("user")?.asText())
+        assertEquals("localhost", json.get("host")?.asText())
+        assertEquals("admin", json.get("password")?.asText())
+    }
+
+    @Test
+    fun checkOperatorAccessThrows401WhenPasswordInvalid() {
+        nextBody.set("1")
+
+        val error = assertFailsWith<EjabberdException> { client.checkOperatorAccess() }
+
+        assertEquals(401, error.statusCode.value())
+        assertEquals("Unauthorized", error.status)
+    }
+
+    @Test
+    fun checkAdminAccessAcceptsConfiguredAdmin() {
+        nextBody.set("0")
+
+        client.checkAdminAccess()
+
+        val json = objectMapper.readTree(lastRequest().body)
+        assertEquals("admin", json.get("user")?.asText())
+        assertEquals("admin", json.get("password")?.asText())
+    }
+
+    @Test
+    fun checkAdminAccessRejectsNonAdminUser() {
+        val otherUser = MockHttpServletRequest().apply {
+            addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString("operator@localhost:pw".toByteArray()))
+        }
+        RequestContextHolder.setRequestAttributes(ServletRequestAttributes(otherUser))
+
+        val error = assertFailsWith<EjabberdException> { client.checkAdminAccess() }
+
+        assertEquals(401, error.statusCode.value())
+        assertEquals("Unauthorized", error.status)
+    }
+
+    @Test
+    fun checkAdminAccessThrows401WhenPasswordInvalid() {
+        nextBody.set("1")
+
+        val error = assertFailsWith<EjabberdException> { client.checkAdminAccess() }
+
+        assertEquals(401, error.statusCode.value())
+        assertEquals("Unauthorized", error.status)
+    }
+
+    @Test
+    fun extractCredentialsThrows401WhenAuthorizationHeaderMissing() {
+        RequestContextHolder.setRequestAttributes(ServletRequestAttributes(MockHttpServletRequest()))
+
+        val error = assertFailsWith<EjabberdException> { client.extractCredentialsFromHeader() }
+
+        assertEquals(401, error.statusCode.value())
+        assertEquals("Unauthorized", error.status)
+    }
+
+    @Test
+    fun getAuthorizationHeaderReturnsNullWithoutServletRequestAttributes() {
+        val previous = RequestContextHolder.getRequestAttributes()
+        RequestContextHolder.resetRequestAttributes()
+
+        assertNull(client.getAuthorizationHeader())
+
+        RequestContextHolder.setRequestAttributes(previous)
+    }
+
+    @Test
+    fun checkOperatorAccessThrowsEjabberdExceptionWhenServerReturnsError() {
+        nextStatus.set(500)
+        nextBody.set("""{"message":"Server error"}""")
+
+        val error = assertFailsWith<EjabberdException> { client.checkOperatorAccess() }
+
+        assertEquals("Server error", error.message)
+    }
+
+    @Test
+    fun getRoomAffiliationReturnsEmptyStringWhenBodyIsMissing() {
+        nextStatus.set(200)
+        nextBody.set("")
+
+        assertEquals("", client.getRoomAffiliation("support", "conference", "johndoe@localhost"))
+    }
 }
