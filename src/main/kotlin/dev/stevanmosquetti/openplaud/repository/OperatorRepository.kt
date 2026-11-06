@@ -18,4 +18,13 @@ interface OperatorRepository : JpaRepository<Operator, UUID> {
        FROM Operator o WHERE o.id = :operatorId
     """)
     fun getUsernameById(operatorId: UUID): String
+
+    /**
+     * True when the operator exists.
+     */
+    @Query("""
+       SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END
+       FROM Operator o WHERE o.username = :username
+    """)
+    fun existsByOperatorUsername(username: String): Boolean
 }

@@ -38,11 +38,6 @@ class TempRoomService(
             service?: mucService,
             user.toString(),
             "member")
-        ejabberd.setRoomSubscription(
-            room,
-            service?: mucService,
-            user.toString(),
-            name)
         val operators: List<Operator> = operatorGroupRepository.listOperatorsByGroupId(groupId)
         operators
             .forEach { op ->

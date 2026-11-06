@@ -8,7 +8,9 @@ import dev.stevanmosquetti.openplaud.repository.OperatorGroupRepository
 import dev.stevanmosquetti.openplaud.repository.OperatorRepository
 import dev.stevanmosquetti.openplaud.slugify.Slugifier
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
 import java.security.SecureRandom
 import java.util.UUID
 
@@ -111,11 +113,17 @@ class OperatorService(
     }
     
     /**
-     * Verifies the operator's Basic auth credentials against ejabberd
+     * Check is the Operator is registed in the database and
+     * verifies the operator's Basic auth credentials against ejabberd
      * `check_password`.
      */
     fun checkAccess() {
-        ejabberd.checkOperatorAccess()
+        val user = ejabberd.extractCredentialsFromHeader()["user"] ?: ""
+        if (user.isNotEmpty() && operatorRepository.existsByOperatorUsername(user)) {
+            ejabberd.checkOperatorAccess()
+        } else {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to access this resource")
+        }
     }
 
     /**

@@ -220,7 +220,7 @@ class EjabberdClient(
      * Decodes the Basic `Authorization` header into a user/password pair; throws a
      * 401 EjabberdException when the header is missing.
      */
-    private fun extractCredentialsFromHeader(): Map<String, String> {
+    fun extractCredentialsFromHeader(): Map<String, String> {
         val auth = getAuthorizationHeader() ?: throw EjabberdException(
             "Authentication failure",
             HttpStatusCode.valueOf(401),
