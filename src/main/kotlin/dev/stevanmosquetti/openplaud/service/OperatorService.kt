@@ -119,7 +119,7 @@ class OperatorService(
      */
     fun checkAccess() {
         val user = ejabberd.extractCredentialsFromHeader()["user"] ?: ""
-        if (user.isNotEmpty() && operatorRepository.existsByOperatorUsername(user)) {
+        if (user.isNotEmpty() && operatorRepository.existsByOperatorUsername(user.split("@")[0])) {
             ejabberd.checkOperatorAccess()
         } else {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to access this resource")
